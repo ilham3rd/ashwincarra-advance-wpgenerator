@@ -21,6 +21,10 @@ class MainMenuForm(QWidget):
         self.wpBawahKiriLatLong=[0,0]
         self.wpAtasKananLatLong=[0,0]
         self.wpAtasKiriLatLong=[0,0]
+        self.wpSplineKanan=[0,0]
+        self.wpSplineKiri=[0,0]
+        self.wpPickLatLong=[0,0]
+        
 
 
         self.HLayout=QHBoxLayout()
@@ -119,7 +123,13 @@ class MainMenuForm(QWidget):
         
         # self.VMenuLayout.addWidget(self.setHome)
 
+
+        self.radiusText=QLabel("Spline Radius (m)")
+        self.radius=QLineEdit()
         self.home_rotasi=QLineEdit()
+        self.HRadius=QHBoxLayout()
+        self.HRadius.addWidget(self.radiusText,1)
+        self.HRadius.addWidget(self.radius,1)
         self.textRotasi=QLabel("Rotasi")
         self.setRotasi=QPushButton("Set Rotasi")
         self.setRotasi.clicked.connect(self.setRotasiFun)
@@ -127,6 +137,7 @@ class MainMenuForm(QWidget):
         self.HRotasi=QHBoxLayout()
         self.HRotasi.addWidget(self.textRotasi,1)
         self.HRotasi.addWidget(self.home_rotasi,1)
+        self.VMenuLayout.addLayout(self.HRadius,1)
         self.VMenuLayout.addLayout(self.HRotasi,1)
         self.VMenuLayout.addWidget(self.widthText)
         self.VMenuLayout.addWidget(self.widthSlider)
@@ -137,14 +148,16 @@ class MainMenuForm(QWidget):
         self.VMenuLayout.addWidget(self.setLogo(),1)
     
     def GenerateWP(self):
-        self.wpAltitude=int(self.Altitude.text())
-        self.wpSpeedTrans=int(self.ChangeSpeed1.text())
-        self.wpSpeedScan=int(self.ChangeSpeed2.text())
-        self.wpLatitude=int(self.home_latitude.text())
-        self.wpLongitude=int(self.home_longitude.text())
+        self.wpAltitude=float(self.Altitude.text())
+        self.wpSpeedTrans=float(self.ChangeSpeed1.text())
+        self.wpSpeedScan=float(self.ChangeSpeed2.text())
+        self.wpLatitude=float(self.home_latitude.text())
+        self.wpLongitude=float(self.home_longitude.text())
         self.wpMission=self.mission_selected
         self.wpPanjang=self.lenghtSlider.value()
         self.wpLebar=self.widthSlider.value()
+        self.wpRadius=float(self.radius.text())
+        self.wpRotasi=float(self.home_rotasi.text())
         print(self.wpPanjang)
         print(self.wpLebar)
         if(self.wpMission==1):
@@ -155,35 +168,98 @@ class MainMenuForm(QWidget):
     
     def createMission2(self):
         self.basicWPMission2()
+        self.view.reload()
         
     def basicWPMission2(self):
-        self.consLatitudeLongitude=0.000089831
-        self.wpHomeLatLong[0]=0.00000000
-        self.wpHomeLatLong[1]=0.00000000
-        self.wpBawahKananLatLong[0]=self.meterToLatLong(self.wpPanjang/2.0)
-        self.wpBawahKananLatLong[1]=0.00000000
-        self.wpAtasKananLatLong[0]=self.meterToLatLong(self.wpPanjang/2.0)
-        self.wpAtasKananLatLong[1]=self.meterToLatLong(self.wpLebar)
-        self.wpBawahKiriLatLong[0]=-self.meterToLatLong(self.wpPanjang/2.0)
-        self.wpBawahKiriLatLong[1]=0.00000000
-        self.wpAtasKiriLatLong[0]=-self.meterToLatLong(self.wpPanjang/2.0)
-        self.wpAtasKiriLatLong[1]=self.meterToLatLong(self.wpLebar)
-        with open('eggs.waypoints', 'w', newline='') as csvfile:
+        self.consLatitudeLongitude=0.0000089831
+        self.wpHomeLatLong[0]=self.wpLongitude
+        self.wpHomeLatLong[1]=self.wpLatitude
+
+        self.wpSplineKanan[1]=self.wpLatitude+self.meterToLatLong(self.wpLebar/2.0)
+        self.wpSplineKanan[0]=self.wpLongitude+self.meterToLatLong((self.wpPanjang+self.wpRadius)/2)
+        self.wpSplineKiri[1]=self.wpLatitude+self.meterToLatLong(self.wpLebar/2.0)
+        self.wpSplineKiri[0]=self.wpLongitude-self.meterToLatLong((self.wpPanjang+self.wpRadius)/2)
+        self.wpBawahKananLatLong[0]=self.wpLongitude+self.meterToLatLong(self.wpPanjang/2.0)
+        self.wpBawahKananLatLong[1]=self.wpLatitude
+        self.wpAtasKananLatLong[0]=self.wpLongitude+self.meterToLatLong(self.wpPanjang/2.0)
+        self.wpAtasKananLatLong[1]=self.wpLatitude+self.meterToLatLong(self.wpLebar)
+        self.wpBawahKiriLatLong[0]=self.wpLongitude-self.meterToLatLong(self.wpPanjang/2.0)
+        self.wpBawahKiriLatLong[1]=self.wpLatitude
+        self.wpAtasKiriLatLong[0]=self.wpLongitude-self.meterToLatLong(self.wpPanjang/2.0)
+        self.wpAtasKiriLatLong[1]=self.wpLatitude+self.meterToLatLong(self.wpLebar)
+        self.wpPickLatLong[1]=self.wpLatitude+self.meterToLatLong(self.wpLebar)
+        self.wpPickLatLong[0]=self.wpLongitude
+
+        self.wpBawahKananLatLong[1],self.wpBawahKananLatLong[0]=self.rotation(self.wpBawahKananLatLong[1],self.wpBawahKananLatLong[0],self.wpRotasi)
+        self.wpAtasKananLatLong[1],self.wpAtasKananLatLong[0]=self.rotation(self.wpAtasKananLatLong[1],self.wpAtasKananLatLong[0],self.wpRotasi)
+        self.wpBawahKiriLatLong[1],self.wpBawahKiriLatLong[0]=self.rotation(self.wpBawahKiriLatLong[1],self.wpBawahKiriLatLong[0],self.wpRotasi)
+        self.wpAtasKiriLatLong[1],self.wpAtasKiriLatLong[0]=self.rotation(self.wpAtasKiriLatLong[1],self.wpAtasKiriLatLong[0],self.wpRotasi)
+        self.wpSplineKanan[1],self.wpSplineKanan[0]=self.rotation(self.wpSplineKanan[1],self.wpSplineKanan[0],self.wpRotasi)
+        self.wpSplineKiri[1],self.wpSplineKiri[0]=self.rotation(self.wpSplineKiri[1],self.wpSplineKiri[0],self.wpRotasi)
+        self.wpPickLatLong[1],self.wpPickLatLong[0]=self.rotation(self.wpPickLatLong[1],self.wpPickLatLong[0],self.wpRotasi)
+
+
+        #Rotasi
+
+        with open('Mission2.waypoints', 'w', newline='') as csvfile:
             spamwriter = csv.writer(csvfile, delimiter='\t', quoting=csv.QUOTE_MINIMAL)
             spamwriter.writerow(["QGC WPL 110"])
-            spamwriter.writerow([0,1,0,0,0,0,0,0,0,0,0,0])
-            spamwriter.writerow([1,0,10,16,0,0,0,0,self.wpHomeLatLong[0],self.wpHomeLatLong[1],0,1])
-            spamwriter.writerow([2,0,10,16,0,0,0,0,self.wpBawahKananLatLong[0],self.wpBawahKananLatLong[1],0,1])
-            spamwriter.writerow([3,0,10,16,0,0,0,0,self.wpAtasKananLatLong[0],self.wpAtasKananLatLong[1],0,1])
-            spamwriter.writerow([4,0,10,16,0,0,0,0,self.wpAtasKiriLatLong[0],self.wpAtasKiriLatLong[1],0,1])
-            spamwriter.writerow([5,0,10,16,0,0,0,0,self.wpBawahKiriLatLong[0],self.wpBawahKiriLatLong[1],0,1])
+            spamwriter.writerow([0,1,0,16,0,0,0,0,self.wpHomeLatLong[1],self.wpHomeLatLong[0],self.wpAltitude,1])
+            spamwriter.writerow([1,0,10,178,self.wpSpeedTrans,self.wpSpeedTrans,0,0,0,0,0,1]) #Do Change Speed Translasi
+            spamwriter.writerow([2,0,10,16,0,0,0,0,self.wpHomeLatLong[1],self.wpHomeLatLong[0],3,1])
+            spamwriter.writerow([3,0,10,16,0,0,0,0,self.wpBawahKananLatLong[1],self.wpBawahKananLatLong[0],self.wpAltitude,1])
+            spamwriter.writerow([4,0,10,178,self.wpSpeedTrans+0.3,self.wpSpeedTrans+0.3,0,0,0,0,0,1]) #Do Change Speed Spline
+            spamwriter.writerow([5,0,10,82,0,0,0,0,self.wpSplineKanan[1],self.wpSplineKanan[0],self.wpAltitude,1])
+            spamwriter.writerow([6,0,10,82,0,0,0,0,self.wpAtasKananLatLong[1],self.wpAtasKananLatLong[0],self.wpAltitude,1])
+            spamwriter.writerow([7,0,10,16,0,0,0,0,self.wpPickLatLong[1],self.wpPickLatLong[0],self.wpAltitude,1])
+            spamwriter.writerow([8,0,10,16,0,0,0,0,self.wpAtasKiriLatLong[1],self.wpAtasKiriLatLong[0],self.wpAltitude,1])
+            spamwriter.writerow([9,0,10,178,self.wpSpeedTrans+0.8,self.wpSpeedTrans+0.8,0,0,0,0,0,1]) #Do Change Speed Spline
+            spamwriter.writerow([10,0,10,82,0,0,0,0,self.wpSplineKiri[1],self.wpSplineKiri[0],self.wpAltitude,1])
+            spamwriter.writerow([11,0,10,82,0,0,0,0,self.wpBawahKiriLatLong[1],self.wpBawahKiriLatLong[0],self.wpAltitude,1])
+            spamwriter.writerow([12,0,10,16,0,0,0,0,self.wpHomeLatLong[1],self.wpHomeLatLong[0],self.wpAltitude,1])
+            spamwriter.writerow([13,0,10,16,0,0,0,0,self.wpBawahKananLatLong[1],self.wpBawahKananLatLong[0],self.wpAltitude,1])
+            spamwriter.writerow([14,0,10,178,self.wpSpeedTrans+1.1,self.wpSpeedTrans+1.1,0,0,0,0,0,1]) #Do Change Speed Translasi
+            spamwriter.writerow([15,0,10,82,0,0,0,0,self.wpSplineKanan[1],self.wpSplineKanan[0],self.wpAltitude,1])
+            spamwriter.writerow([16,0,10,82,0,0,0,0,self.wpAtasKananLatLong[1],self.wpAtasKananLatLong[0],self.wpAltitude,1])
+            spamwriter.writerow([17,0,10,16,0,0,0,0,self.wpPickLatLong[1],self.wpPickLatLong[0],self.wpAltitude,1])
+            spamwriter.writerow([18,0,10,93,0.1,0,0,0,0,0,0,1]) # Delay
+            spamwriter.writerow([19,0,10,178,self.wpSpeedScan,self.wpSpeedScan+0.8,0,0,0,0,0,1]) #Do Change Speed Spline
+            spamwriter.writerow([20,0,10,16,0,0,0,0,self.wpAtasKiriLatLong[1],self.wpAtasKiriLatLong[0],self.wpAltitude,1])
+            spamwriter.writerow([21,0,10,178,self.wpSpeedTrans+1,self.wpSpeedTrans+1,0,0,0,0,0,1]) #Do Change Speed Translasi
+            spamwriter.writerow([22,0,10,82,0,0,0,0,self.wpSplineKiri[1],self.wpSplineKiri[0],self.wpAltitude,1])
+            spamwriter.writerow([23,0,10,82,0,0,0,0,self.wpBawahKiriLatLong[1],self.wpBawahKiriLatLong[0],self.wpAltitude,1])
+            spamwriter.writerow([24,0,10,16,0,0,0,0,self.wpHomeLatLong[1],self.wpHomeLatLong[0],3,1])
 
-            print("test")
+        with open('datawp_dump.csv','w',newline='')as file:
+            fieldname=['8','Aerial']
+            writer =csv.DictWriter(file,fieldnames=fieldname)
+            writer.writeheader()
+            writer.writerow({'8': self.wpHomeLatLong[0],'Aerial':self.wpHomeLatLong[1]})
+            writer.writerow({'8': self.wpBawahKananLatLong[0],'Aerial':self.wpBawahKananLatLong[1]})
+            writer.writerow({'8': self.wpSplineKanan[0],'Aerial':self.wpSplineKanan[1]})
+            writer.writerow({'8': self.wpAtasKananLatLong[0],'Aerial':self.wpAtasKananLatLong[1]})
+            writer.writerow({'8': self.wpPickLatLong[0],'Aerial':self.wpPickLatLong[1]})
+            writer.writerow({'8': self.wpAtasKiriLatLong[0],'Aerial':self.wpAtasKiriLatLong[1]})
+            writer.writerow({'8': self.wpSplineKiri[0],'Aerial':self.wpSplineKiri[1]})
+            writer.writerow({'8': self.wpBawahKiriLatLong[0],'Aerial':self.wpBawahKiriLatLong[1]})
+            self.view.reload()
+      
+    def rotation(self,x,y,sudut):
+        a=self.wpHomeLatLong[1]
+        b=self.wpHomeLatLong[0]
+        rad=(sudut*math.pi)/180
+        x_rotasi=(((x-a)*math.cos(rad))-((y-b)*math.sin(rad)))+a
+        y_rotasi=(((x-a)*math.sin(rad))+((y-b)*math.cos(rad)))+b
+        return x_rotasi,y_rotasi
 
-                
+   
+
     
     def meterToLatLong(self,delta):
         return self.consLatitudeLongitude*delta
+
+
+
 
 
     def setPanjang(self):
@@ -237,7 +313,7 @@ class MainMenuForm(QWidget):
         return logo
     def setMaps(self):
         self.view =QWebEngineView()
-        self.view.load(QUrl.fromLocalFile(os.path.abspath('/home/hamz/Documents/GUI_TUBITAK_ASHWINCARRA/maps/dist/index.html')))
+        self.view.load(QUrl.fromLocalFile(os.path.abspath('index.html')))
         return self.view
 
     def readWaypoint(self,file_location):
@@ -316,13 +392,6 @@ class MainMenuForm(QWidget):
                 self.dataWaypoint[1][i]=float(self.dataWaypoint[1][i])+deltaLatitude
         self.view.reload()
 
-    def rotation(self,x,y,sudut):
-        a=float(self.dataWaypoint[1][0])
-        b=float(self.dataWaypoint[0][0])
-        rad=(sudut*math.pi)/180
-        x_rotasi=(((x-a)*math.cos(rad))-((y-b)*math.sin(rad)))+a
-        y_rotasi=(((x-a)*math.sin(rad))+((y-b)*math.cos(rad)))+b
-        return x_rotasi,y_rotasi
 
 class MainWindow(QMainWindow):
     def __init__(self,parent=None):
